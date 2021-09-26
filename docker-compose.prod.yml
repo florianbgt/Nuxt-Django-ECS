@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  api:
+    restart: always
+    build:
+      context: api
+      dockerfile: Dockerfile
+    command: gunicorn --bind=0.0.0.0:8000 --workers=2 --threads=4 --reload _project.wsgi
+    env_file:
+      - .env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=PathPrefix(`/api`)
+      - traefik.http.services.api.loadbalancer.server.port=8000
+      - traefik.http.routers.api.tls=true
+  app:
+    restart: always
+    build:
+      context: app
+      dockerfile: Dockerfile.prod
+    command: npm run start
+    env_file:
+      - .env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.app.rule=PathPrefix(`/`)
+      - traefik.http.services.app.loadbalancer.server.port=3000
+      - traefik.http.routers.app.tls=true
+  traefik:
+    image: traefik:v2.5
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

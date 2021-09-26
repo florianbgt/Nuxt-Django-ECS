@@ -1,0 +1,10 @@
+FROM node:16.6
+WORKDIR /code
+COPY package*.json /code/
+RUN npm install
+ENV NUXT_HOST 0.0.0.0
+ENV NUXT_PORT 80
+COPY . .
+RUN npm run build
+EXPOSE 80
+CMD ["npm", "run", "start"]
